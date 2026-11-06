@@ -1,0 +1,33 @@
+---
+name: Build unsigned IPA
+on:
+  push:
+    paths:
+      - '.github/workflows/build-ipa.yml'
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: macos-15
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Show Xcode version
+        run: xcodebuild -version
+      - name: Build (unsigned)
+        run: |
+          xcodebuild -project Translate.xcodeproj -target Translate -sdk iphoneos -configuration Release -derivedDataPath "$PWD/build" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY= build
+      - name: Package IPA
+        run: |
+          ls -lh build/Build/Products/Release-iphoneos/
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/Translate.app Payload/
+          zip -r Translate-unsigned.ipa Payload
+          ls -lh Translate-unsigned.ipa
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-1
+          name: Unsigned IPA build 1
+          files: Translate-unsigned.ipa
+---
